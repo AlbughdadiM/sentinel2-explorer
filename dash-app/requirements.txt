@@ -27,4 +27,4 @@ dash_core_components==1.15.0
 dash_html_components==1.1.2
 plotly==4.4.1
 dash-leaflet==0.1.13
-gunicorn==19.3.0
+gunicorn==19.5.0
