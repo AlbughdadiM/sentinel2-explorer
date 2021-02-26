@@ -1,0 +1,5 @@
+*.tif
+__pycache__/
+.pytest_cache/
+GCP-ML-d3181aeba23e.json
+process.egg-info

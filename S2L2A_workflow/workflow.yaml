@@ -1,0 +1,70 @@
+main: 
+  steps:
+  - assign_vars:
+          assign:
+            - request_body : {
+              "load": {
+                "sourceUris": [
+                  "${ \"gs://gcp-public-data-sentinel-2/L2/index.csv.gz\"}"
+                ],
+                "destinationTable": {
+                  "datasetId": "s2_l2a_index",
+                  "projectId": "YOUR_PROJECT",
+                  "tableId": "catalog"
+                },
+                "sourceFormat": "CSV",
+                "autodetect": "true",
+                "nullMarker": "NA",
+                "fieldDelimiter": ","
+              }
+            }
+
+  - createBigQueryLoadJob:
+      call: http.post
+      args:
+        url: https://bigquery.googleapis.com/bigquery/v2/projects/YOUR_PROJECT/jobs
+        body:
+          configuration: ${request_body}
+        headers:
+          Content-Type: "application/json"
+        auth:
+          type: OAuth2
+      result: jobLoadRes
+
+
+  - getJobFinalStatus:
+      call: sub_getJobFinalStatus
+      args:
+            joburl: ${jobLoadRes.body.selfLink}
+      result: finalStatus
+
+  - checkJobResult:
+      switch:
+        - condition: ${"errorResult" in finalStatus.body.status }
+          raise: ${finalStatus.body.status.errors}
+
+  - returnResult:
+      return:
+        "jobStatus" : ${finalStatus}
+
+
+sub_getJobFinalStatus:
+    params: [joburl]
+    steps:
+      - sleep:
+          call: sys.sleep
+          args:
+            seconds: 5
+      - getJobCurrentStatus:
+          call: http.get
+          args:
+            url: ${joburl}
+            auth:
+              type: OAuth2
+          result: jobStatusRes
+      - isJobFinished:
+          switch:
+            - condition: ${jobStatusRes.body.status.state == "DONE"}
+              return: ${jobStatusRes}
+          # else
+          next: sleep
